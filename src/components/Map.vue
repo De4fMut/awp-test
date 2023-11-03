@@ -7,27 +7,79 @@ import location from "../data/location.json";
 import temp from "../data/temperatures.json";
 
 const locationsArray = markRaw([]);
-const tempArray = markRaw([]);
 
 // Форматирование времени
-// function spreadTimestamp(date){
-//     let obj ={
-//         hours: [],
-//         minutes: [],
-//         seconds: []
-//     }
-//     for (let i = 0; i < date.length; i++){
-//     let time = date[i].split(" ")[1]; // "10:00:00"
-//     let hours = time.substring(0, 2); // "10"
-//     let minutes = time.substring(3, 5); // "00"
-//     let seconds = time.substring(6, 8); // "00"
-//     obj.hours.push(hours)
-//     obj.minutes.push(minutes)
-//     obj.seconds.push(seconds)
-//     }
+// function calculateTemperature(date) {
+//   const temp10 = temp.OutsideTemp[0];
+//   const temp11 = temp.OutsideTemp[1];
+//   const temp1155 = temp.OutsideTemp[2];
+//   const temp21 = temp.OutsideTemp[3];
+//   const time = date.split(' ')[1];
+
+//   console.log(time)
+
+//   const hour = parseInt(time.split(":")[0]);
+//   const minute = parseInt(time.split(":")[1]);
+
+// console.log(hour, '  ', minute)
+
+//   const earlierTime = hour < 11 || (hour === 11 && minute <= 55) ? "11:55" : "21:00";
+//   const laterTime = hour >= 11 && minute >= 55 ? "21:00" : "10:00";
+
+//   console.log(earlierTime, laterTime)
+
+//   const earlierTemp = earlierTime === "10:00" ? temp10 : temp1155;
+//   const laterTemp = laterTime === "21:00" ? temp21 : temp1155;
+
+//   const timeDiff = (hour - parseInt(earlierTime.split(":")[0])) * 60 + (minute - parseInt(earlierTime.split(":")[1]));
+//   const tempDiff = laterTemp - earlierTemp;
+
+//   const temperature = earlierTemp + (tempDiff * timeDiff) / ((laterTime === "21:00" ? 24 : 10) * 60 - parseInt(earlierTime.split(":")[0]) * 60 - parseInt(earlierTime.split(":")[1]));
+
+//   alert(`Temperature at ${time} is ${temperature}°C`);
 // }
 
-function timeCompare(i, k) {}
+// calculateTemperature(temp.Timestamp[3]);
+function roundedTime(t) {
+    let date = new Date(t); // дата
+    let minutes = date.getMinutes(); // получаем минуты
+    let sec = date.getSeconds(); // получаем секунды
+    let hours = date.getHours(); // получаем часы
+
+    // округляем секунды до ближайшего целого
+    sec = Math.round(sec / 60) * 60;
+
+    if (sec === 60) {
+        minutes++;
+        sec = 0;
+    }
+
+    // округляем минуты до ближайшего целого
+    minutes = Math.round(minutes / 60) * 60;
+
+    // если минуты округлились до 60, то увеличиваем часы на 1
+    if (minutes === 60) {
+        hours++;
+        minutes = 0;
+    }
+
+    const roundedTime = new Date(
+        t.split(" ")[0] +
+            " " +
+            hours +
+            ":" +
+            (minutes < 10 ? "0" : "") +
+            minutes +
+            ":" +
+            (minutes < 10 ? "0" : "") +
+            sec
+    ).getTime();
+
+    // console.log(roundedTime);
+    return roundedTime;
+}
+roundedTime(temp.Timestamp[2]);
+
 
 // Форматирование координат в массив [длина, широта]
 for (let i = 0; i < location.Latitude.length; i++) {
@@ -38,7 +90,7 @@ for (let i = 0; i < location.Latitude.length; i++) {
     ) {
         point.push(location.Latitude[i], location.Longitude[i]);
         locationsArray.push(point);
-        console.log(typeof location.Latitude[i], typeof location.Longitude[i]);
+        // console.log(typeof location.Latitude[i], typeof location.Longitude[i]);
     } else {
         i++;
     }
@@ -61,7 +113,7 @@ function onInit(e) {
         {},
         {
             strokeWidth: 3,
-            strokeStyle: "2  2  5",
+            strokeStyle: "3  2  5",
         }
     );
 
@@ -69,26 +121,30 @@ function onInit(e) {
     const placemarksArray = markRaw([]);
     const placemarks = new ymaps.GeoObjectCollection();
     for (let i = 0; i < locationsArray.length; i++) {
+        // Можно декомпозировать
+        
 
+        // Массив температуры
+        const dateTemp = [
+            roundedTime(temp.Timestamp[0]),
+            roundedTime(temp.Timestamp[1]),
+            roundedTime(temp.Timestamp[2]),
+            roundedTime(temp.Timestamp[3]),
+        ];
+        const dateLoco = roundedTime(location.Timestamp[i]);
+        // console.log(dateLoco, ': ', dateTemp[0], '= ', dateLoco == dateTemp[0]);
 
-        // ЕСЛИ ХВАТИТ СИЛ ДЕКОМПОЗИРУЮ ВСЁ
-        // ТАКЖЕ БЫЛО БЫ ХОРОШО УСРЕДНИТЬ ВРЕМЯ ЛОКОМОТИВА ДЛЯ ОТОБРАЖЕНИЯ БОЛЕЕ ТОЧНОЙ ТЕМПЕРАТУРЫ
-
-
-        // Определение температуры
-        const dateTemp = (k) => new Date(`${temp.Timestamp[k]}`);
-        const dateLoco = new Date(`${location.Timestamp[i]}`);
-        let currentTemp
-        if (dateLoco > dateTemp(0) && dateLoco < dateTemp(1)){
-            currentTemp = temp.OutsideTemp[0]
-        } else if (dateLoco > dateTemp(1) && dateLoco < dateTemp(2)) {
-            currentTemp = temp.OutsideTemp[1]
-        } else if (dateLoco > dateTemp(2) && dateLoco < dateTemp(3)) {
-            currentTemp = Math.round((temp.OutsideTemp[2] + temp.OutsideTemp[3])/2)
-        } else if (dateLoco >= dateTemp(3)){
-            currentTemp = temp.OutsideTemp[3]
+        // Присвоение температуры
+        let currentTemp;
+        if (dateLoco == dateTemp[0]) {
+            currentTemp = temp.OutsideTemp[0];
+        } else if (dateLoco == dateTemp[1]) {
+            currentTemp = temp.OutsideTemp[1];
+        } else if (dateLoco == dateTemp[2]) {
+            currentTemp = temp.OutsideTemp[3];
+        } else if (dateLoco == dateTemp[3]) {
+            currentTemp = temp.OutsideTemp[3];
         }
-
 
         // Создание точки
         placemarksArray.push(locationsArray[i]);
